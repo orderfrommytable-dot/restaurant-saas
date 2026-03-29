@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. The User (The Restaurant Owner)
+model User {
+  id          Int          @id @default(autoincrement())
+  email       String       @unique
+  password    String
+  name        String?
+  
+  // A user can own many restaurants
+  restaurants Restaurant[] 
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// 2. The Restaurant (Linked to its Owner)
+model Restaurant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  
+  // Link to the Owner (User)
+  userId    Int
+  owner     User     @relation(fields: [userId], references: [id])
+
+  // Link to the Food (Menu Items)
+  menuItems MenuItem[] 
+
+  // NEW: Link to the Orders (This tells Restaurant it has a list of orders)
+  orders    Order[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 3. The Menu Items (Linked to the Restaurant)
+model MenuItem {
+  id           Int        @id @default(autoincrement())
+  name         String
+  price        Float      
+  description  String?    
+  
+  // Link to the Restaurant
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// 4. The Orders (Placed by Customers)
+model Order {
+  id           Int        @id @default(autoincrement())
+  tableNumber  String
+  items        Json       // This stores the array of food ordered
+  status       String     @default("PENDING") // PENDING, COOKING, COMPLETED
+  
+  // Link to the Restaurant
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  createdAt    DateTime   @default(now())
+}
