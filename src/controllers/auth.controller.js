@@ -1,68 +1,86 @@
-const prisma = require("../lib/prisma");
-const bcrypt = require("bcryptjs"); // The password scrambler
-const jwt = require("jsonwebtoken"); // The VIP wristband maker
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-// 1. REGISTER A NEW USER
+// --- 1. REGISTER (7 Fields + OTP Generation) ---
 exports.register = async (req, res) => {
+  const { firstName, lastName, companyName, mobileNo, email, password } = req.body;
+
   try {
-    const { email, password, name } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Generate a random 4-digit code
+    const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Check if they left it blank
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email and password are required" });
-    }
-
-    // Check if the email is already taken
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email is already registered" });
-    }
-
-    // Scramble (Hash) the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Save the new user to the database
     const user = await prisma.user.create({
       data: {
-        email: email,
-        name: name,
-        password: hashedPassword // NEVER save the real password!
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        companyName,
+        mobileNo,
+        otp: generatedOtp, // Store the code
+        isVerified: false  // Keep them locked out for now
       }
     });
 
-    res.status(201).json({ success: true, message: "User registered successfully! 🎉" });
+    // NOTE: In production, you would send 'generatedOtp' via Email/SMS here.
+    console.log(`🔑 SECURITY CODE FOR ${email}: ${generatedOtp}`);
+
+    res.json({ 
+      success: true, 
+      message: "Verification code sent!", 
+      dev_otp: generatedOtp // Sending this back only for testing purposes!
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error registering user" });
+    res.status(400).json({ success: false, message: "User already exists or data invalid" });
   }
 };
 
-// 2. LOGIN AN EXISTING USER
-exports.login = async (req, res) => {
+// --- 2. VERIFY (The 4-Digit Check) ---
+exports.verify = async (req, res) => {
+  const { email, otp } = req.body;
+
   try {
-    const { email, password } = req.body;
-
-    // Find the user in the database
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ success: false, message: "Invalid email or password" });
+
+    if (user && user.otp === otp) {
+      // Unlock the account
+      await prisma.user.update({
+        where: { email },
+        data: { isVerified: true, otp: null }
+      });
+
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+      res.json({ success: true, token, message: "Account verified!" });
+    } else {
+      res.status(400).json({ success: false, message: "Invalid security code" });
     }
-
-    // Compare the typed password with the scrambled one in the database
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Invalid email or password" });
-    }
-
-    // Generate the VIP Wristband (Token)
-    const token = jwt.sign(
-      { id: user.id }, 
-      process.env.JWT_SECRET, // Uses the secret key from your .env file
-      { expiresIn: "1d" } // Token expires in 1 day
-    );
-
-    res.json({ success: true, message: "Login successful!", token: token });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error logging in" });
+    res.status(500).json({ success: false, message: "Verification failed" });
+  }
+};
+
+// --- 3. LOGIN (Now with Verification Guard) ---
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ success: false, message: "Please verify your account first" });
+    }
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.json({ success: true, token });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Login error" });
   }
 };

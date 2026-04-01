@@ -9,18 +9,44 @@ datasource db {
 
 // 1. The User (The Restaurant Owner)
 model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  password    String
-  name        String?
+  id              Int          @id @default(autoincrement())
+  email           String       @unique
+  password        String
+  
+  // Professional Details
+  firstName       String?
+  lastName        String?
+  companyName     String?
+  mobileNo        String?
+  
+  // Verification System
+  isVerified      Boolean      @default(false)
+  otp             String?      // Stores the 4-digit security code
   
   // A user can own many restaurants
-  restaurants Restaurant[] 
+  restaurants     Restaurant[] 
   
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
+// 2. The Restaurant (Linked to its Owner)
+model Restaurant {
+  id         Int        @id @default(autoincrement())
+  name       String
+  slug       String     @unique
+  
+  userId     Int
+  owner      User       @relation(fields: [userId], references: [id])
+
+  menuItems  MenuItem[] 
+  orders     Order[]
+  
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+// ... Keep MenuItem and Order models exactly as they were below ...
 // 2. The Restaurant (Linked to its Owner)
 model Restaurant {
   id        Int      @id @default(autoincrement())

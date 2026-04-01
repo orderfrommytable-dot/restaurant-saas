@@ -8,10 +8,12 @@ const orderController = require("../controllers/order.controller");
 const protect = require("../lib/auth.middleware");
 
 // --- AUTH ROUTES (Public) ---
+// Note: If server.js uses app.use("/auth", routes), remove the "/auth" prefix below
 router.post("/auth/register", authController.register);
+router.post("/auth/verify", authController.verify); // 👈 ADDED THIS FOR THE 4-DIGIT CODE
 router.post("/auth/login", authController.login);
 
-// --- RESTAURANT ROUTES ---
+// --- RESTAURANT ROUTES (Protected) ---
 router.post("/restaurants", protect, restaurantController.createRestaurant); 
 router.get("/restaurants", protect, restaurantController.getAllRestaurants); 
 router.get("/restaurants/:id", restaurantController.getRestaurantById);
