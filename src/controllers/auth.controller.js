@@ -49,7 +49,7 @@ exports.login = async (req, res) => {
     }
 
     // Compare the typed password with the scrambled one in the database
-    const isMatch = (password === user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: "Invalid email or password" });
     }
