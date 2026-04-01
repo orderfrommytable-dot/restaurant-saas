@@ -45,3 +45,27 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// TEMPORARY: Create a master admin account
+app.get("/setup-admin", async (req, res) => {
+  const bcrypt = require("bcryptjs");
+  const { PrismaClient } = require("@prisma/client");
+  const prisma = new PrismaClient();
+
+  const hashedPassword = await bcrypt.hash("admin123", 10);
+  
+  try {
+    const user = await prisma.user.upsert({
+      where: { email: "master@test.com" },
+      update: { password: hashedPassword },
+      create: {
+        email: "master@test.com",
+        password: hashedPassword,
+        role: "ADMIN"
+      }
+    });
+    res.send("Master Admin created successfully! Use master@test.com and admin123");
+  } catch (error) {
+    res.status(500).send("Error: " + error.message);
+  }
+});
