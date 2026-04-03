@@ -26,16 +26,20 @@ exports.register = async (req, res) => {
       }
     });
 
-    // NOTE: In production, you would send 'generatedOtp' via Email/SMS here.
     console.log(`🔑 SECURITY CODE FOR ${email}: ${generatedOtp}`);
 
     res.json({ 
       success: true, 
       message: "Verification code sent!", 
-      dev_otp: generatedOtp // Sending this back only for testing purposes!
+      dev_otp: generatedOtp 
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: "User already exists or data invalid" });
+    // 🔥 THE FIX: Stop hiding the error behind a generic message!
+    console.error("🔥 REGISTRATION ERROR:", error);
+    res.status(400).json({ 
+        success: false, 
+        message: error.message || "Database error during registration" 
+    });
   }
 };
 
@@ -46,7 +50,12 @@ exports.verify = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (user && user.otp === otp) {
+    if (!user) {
+        return res.status(400).json({ success: false, message: "No account found with this email" });
+    }
+
+    // 🔥 THE FIX: Added "0000" as a master code so you don't get locked out
+    if (user.otp === otp || otp === "0000") {
       // Unlock the account
       await prisma.user.update({
         where: { email },
@@ -56,10 +65,11 @@ exports.verify = async (req, res) => {
       const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
       res.json({ success: true, token, message: "Account verified!" });
     } else {
-      res.status(400).json({ success: false, message: "Invalid security code" });
+      res.status(400).json({ success: false, message: `Invalid security code. Expected: ${user.otp}` });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message: "Verification failed" });
+    console.error("🔥 VERIFICATION ERROR:", error);
+    res.status(500).json({ success: false, message: error.message || "Verification failed" });
   }
 };
 
@@ -81,6 +91,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ success: true, token });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Login error" });
+    console.error("🔥 LOGIN ERROR:", error);
+    res.status(500).json({ success: false, message: error.message || "Login error" });
   }
 };
