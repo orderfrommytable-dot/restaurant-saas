@@ -46,27 +46,6 @@ model Restaurant {
   updatedAt  DateTime   @updatedAt
 }
 
-// ... Keep MenuItem and Order models exactly as they were below ...
-// 2. The Restaurant (Linked to its Owner)
-model Restaurant {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String   @unique
-  
-  // Link to the Owner (User)
-  userId    Int
-  owner     User     @relation(fields: [userId], references: [id])
-
-  // Link to the Food (Menu Items)
-  menuItems MenuItem[] 
-
-  // NEW: Link to the Orders (This tells Restaurant it has a list of orders)
-  orders    Order[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 // 3. The Menu Items (Linked to the Restaurant)
 model MenuItem {
   id           Int        @id @default(autoincrement())
