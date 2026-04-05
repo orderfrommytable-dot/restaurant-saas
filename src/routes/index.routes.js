@@ -30,6 +30,7 @@ router.delete("/menu/:id", protect, menuController.deleteMenuItem);
 router.post("/orders", orderController.createOrder);
 router.get("/restaurants/:restaurantId/orders", protect, orderController.getRestaurantOrders);
 router.put("/orders/:id/status", protect, orderController.updateOrderStatus);
+router.put("/orders/:id/pay", orderController.payOrder);
 
 // --- QR CODE / CUSTOMER ROUTE ---
 router.get("/public/menu/:slug", restaurantController.getRestaurantBySlug);

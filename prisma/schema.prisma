@@ -68,6 +68,9 @@ model Order {
   items        Json       // This stores the array of food ordered
   status       String     @default("PENDING") // PENDING, COOKING, COMPLETED
   
+  paymentStatus String    @default("UNPAID") // UNPAID, PAID
+  totalAmount   Float?    
+  
   // Link to the Restaurant
   restaurantId Int
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
