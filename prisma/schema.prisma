@@ -38,6 +38,7 @@ model Restaurant {
   location   String?
   openingTime String?
   closingTime String?
+  numberOfTables Int @default(1)
   
   userId     Int
   owner      User       @relation(fields: [userId], references: [id])

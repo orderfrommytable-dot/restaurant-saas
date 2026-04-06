@@ -3,12 +3,15 @@ const prisma = require("../lib/prisma");
 // 1. CREATE: Linked to User via 'connect'
 exports.createRestaurant = async (req, res) => {
   try {
-    const { name, location, openingTime, closingTime } = req.body;
+    const { name, location, openingTime, closingTime, numberOfTables } = req.body;
     const userId = req.user.id; 
 
     if (!name) return res.status(400).json({ success: false, message: "Name is required" });
 
     const slug = name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]+/g, "");
+    
+    // Parse to int safely, fallback to 1
+    const tablesCount = parseInt(numberOfTables) || 1;
 
     const restaurant = await prisma.restaurant.create({
       data: { 
@@ -17,6 +20,7 @@ exports.createRestaurant = async (req, res) => {
         location: location ? location.trim() : null,
         openingTime: openingTime ? openingTime.trim() : null,
         closingTime: closingTime ? closingTime.trim() : null,
+        numberOfTables: tablesCount,
         owner: {
           connect: { id: userId } 
         }
