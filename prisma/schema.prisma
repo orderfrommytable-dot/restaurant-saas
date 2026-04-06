@@ -35,6 +35,9 @@ model Restaurant {
   id         Int        @id @default(autoincrement())
   name       String
   slug       String     @unique
+  location   String?
+  openingTime String?
+  closingTime String?
   
   userId     Int
   owner      User       @relation(fields: [userId], references: [id])

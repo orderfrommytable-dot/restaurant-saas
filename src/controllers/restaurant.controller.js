@@ -3,7 +3,7 @@ const prisma = require("../lib/prisma");
 // 1. CREATE: Linked to User via 'connect'
 exports.createRestaurant = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, location, openingTime, closingTime } = req.body;
     const userId = req.user.id; 
 
     if (!name) return res.status(400).json({ success: false, message: "Name is required" });
@@ -14,6 +14,9 @@ exports.createRestaurant = async (req, res) => {
       data: { 
         name: name.trim(), 
         slug: slug,
+        location: location ? location.trim() : null,
+        openingTime: openingTime ? openingTime.trim() : null,
+        closingTime: closingTime ? closingTime.trim() : null,
         owner: {
           connect: { id: userId } 
         }
