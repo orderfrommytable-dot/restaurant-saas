@@ -8,7 +8,13 @@ exports.createRestaurant = async (req, res) => {
 
     if (!name) return res.status(400).json({ success: false, message: "Name is required" });
 
-    const slug = name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]+/g, "");
+    let slug = name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]+/g, "");
+    
+    // Ensure slug is unique to avoid Database Error (P2002)
+    const existingSlug = await prisma.restaurant.findUnique({ where: { slug } });
+    if (existingSlug) {
+      slug = `${slug}-${Math.floor(Math.random() * 10000)}`;
+    }
     
     // Parse to int safely, fallback to 1
     const tablesCount = parseInt(numberOfTables) || 1;
